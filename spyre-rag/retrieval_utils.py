@@ -127,12 +127,12 @@ def search_and_answer_dual(
     
     # RAG Answer Generation
     rag_answer, rag_generation_time = query_vllm(
-        question, ranked_documents, llm_endpoint, llm_model, language, stop_words, rag=True, stream=stream
+        question, ranked_documents, llm_endpoint, llm_model, language, stop_words, stream=stream
     )
     
     # No-RAG Answer Generation
     no_rag_answer, no_rag_generation_time = query_vllm(
-        question, [], llm_endpoint, llm_model, language, stop_words, rag=False, stream=stream
+        question, [], llm_endpoint, llm_model, language, stop_words, stream=stream
     )
     
     rag_text = rag_answer.get('choices', [{}])[0].get('text', 'No RAG answer generated.')
@@ -151,7 +151,7 @@ def search_and_answer_dual(
 
 def search_and_answer(
         question, llm_endpoint, llm_model, emb_model, emb_endpoint, max_tokens, reranker_model, reranker_endpoint, 
-        top_k, top_r, use_in_context, use_reranker, max_new_tokens, stop_words, language, vectorstore, deployment_type, stream
+        top_k, top_r, use_reranker, max_new_tokens, stop_words, language, vectorstore, deployment_type, stream
     ):
     
     print(f'Query language: {language}')
@@ -209,7 +209,7 @@ def search_and_answer(
     
     # RAG Answer Generation
     rag_answer, rag_generation_time = query_vllm(
-        question, ranked_documents, llm_endpoint, llm_model, language, stop_words, max_new_tokens, rag=True, stream=stream, use_in_context=use_in_context
+        question, ranked_documents, llm_endpoint, llm_model, language, stop_words, max_new_tokens, stream=stream
     )
     
     # rag_text = rag_answer.get('choices', [{}])[0].get('text', 'No RAG answer generated.')

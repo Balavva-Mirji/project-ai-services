@@ -68,7 +68,6 @@ def generate():
     prompt = data.get("prompt", "")
     num_chunks_post_rrf = data.get("num_chunks_post_rrf", 10)
     num_docs_reranker = data.get("num_docs_reranker", 3)
-    use_in_context = data.get("use_in_context", False)
     use_reranker = data.get("use_reranker", True)
     max_tokens = data.get("max_tokens", 512)
     start_time = time.time()
@@ -94,7 +93,6 @@ def generate():
             reranker_endpoint,
             num_chunks_post_rrf,
             num_docs_reranker,
-            use_in_context,
             use_reranker,
             max_tokens,
             stop_words=stop_words,
@@ -119,7 +117,6 @@ def stream():
     prompt = data.get("prompt", "")
     num_chunks_post_rrf = data.get("num_chunks_post_rrf", 10)
     num_docs_reranker = data.get("num_docs_reranker", 3)
-    use_in_context = data.get("use_in_context", False)
     use_reranker = data.get("use_reranker", True)
     max_tokens = data.get("max_tokens", 512)
     try:
@@ -157,7 +154,7 @@ def stream():
     else:
         stop_words = ['Context:', 'Question:', '\nContext:', '\nAnswer:', '\nQuestion:', 'Answer:']
     return Response(stream_with_context(query_vllm_stream(prompt, docs, llm_endpoint, llm_model, lang, stop_words,
-                                                          max_tokens, True, True, use_in_context, dynamic_chunk_truncation=TRUNCATION)),
+                                                          max_tokens, True, dynamic_chunk_truncation=TRUNCATION)),
                     content_type='text/plain',
                     mimetype='text/event-stream', headers={
             'Cache-Control': 'no-cache',

@@ -42,7 +42,7 @@ func NewServicesHandler() *servicesHandler {
 
 // GetStats - returns the information about the deployed services
 func (s *servicesHandler) GetStats(c *gin.Context) {
-	resp, err := s.runtime.ListPods()
+	resp, err := s.runtime.ListPods(nil)
 	if err != nil {
 		log.Error("GET Services Stats failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, models.ErrorResp{Error: models.Error{Code: http.StatusInternalServerError, Message: "Something went wrong. Please try again!"}})

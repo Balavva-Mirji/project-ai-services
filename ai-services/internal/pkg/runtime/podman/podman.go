@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 
 	"github.com/containers/podman/v5/pkg/bindings"
@@ -40,8 +41,14 @@ func (pc *PodmanClient) ListImages() ([]string, error) {
 	return imageNames, nil
 }
 
-func (pc *PodmanClient) ListPods() (any, error) {
-	podList, err := pods.List(pc.Context, nil)
+func (pc *PodmanClient) ListPods(filters map[string][]string) (any, error) {
+	var listOpts pods.ListOptions
+
+	if len(filters) >= 1 {
+		listOpts.Filters = filters
+	}
+
+	podList, err := pods.List(pc.Context, &listOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
@@ -74,6 +81,24 @@ func (pc *PodmanClient) CreatePodFromTemplate(filePath string, params map[string
 	_, err = kube.PlayWithBody(pc.Context, reader, nil)
 	if err != nil {
 		return fmt.Errorf("failed to execute podman kube play: %w", err)
+	}
+
+	return nil
+}
+
+func (pc *PodmanClient) CreatePod(body io.Reader) error {
+	_, err := kube.PlayWithBody(pc.Context, body, nil)
+	if err != nil {
+		return fmt.Errorf("failed to execute podman kube play: %w", err)
+	}
+
+	return nil
+}
+
+func (pc *PodmanClient) DeletePod(id string, force *bool) error {
+	_, err := pods.Remove(pc.Context, id, &pods.RemoveOptions{Force: force})
+	if err != nil {
+		return fmt.Errorf("failed to delete the pod: %w", err)
 	}
 
 	return nil

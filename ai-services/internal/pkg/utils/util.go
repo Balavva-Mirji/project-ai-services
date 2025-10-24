@@ -26,3 +26,8 @@ func CapitalizeAndFormat(s string) string {
 	// Join back into a single string
 	return strings.Join(words, " ")
 }
+
+// BoolPtr -> converts to bool ptr
+func BoolPtr(v bool) *bool {
+	return &v
+}

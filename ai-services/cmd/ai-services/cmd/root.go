@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/project-ai-services/ai-services/cmd/ai-services/cmd/application"
 	"github.com/project-ai-services/ai-services/cmd/ai-services/cmd/server"
 	"github.com/spf13/cobra"
 )
@@ -32,4 +33,5 @@ func Execute() {
 func init() {
 	RootCmd.AddCommand(BootstrapCmd())
 	RootCmd.AddCommand(server.ServerCmd)
+	RootCmd.AddCommand(application.ApplicationCmd)
 }

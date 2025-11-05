@@ -5,6 +5,7 @@ torch @ file:///opt/wheels/torch-wheels/torch-2.3.0%2Bcpu-cp39-cp39-linux_ppc64l
 torchvision @ file:///opt/wheels/torch-vision-wheels/torchvision-0.16.0%2Bfbb4cc5-cp39-cp39-linux_ppc64le.whl
 
 cohere==5.19.0
+fastapi[all]==0.121.0
 Flask==3.1.2
 joblib==1.5.2
 numpy==1.26.4
@@ -24,3 +25,4 @@ scipy==1.13.1
 tesserocr==2.9.1
 tqdm==4.67.1
 transformers==4.57.1
+uvicorn==0.38.0

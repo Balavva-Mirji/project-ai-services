@@ -80,7 +80,7 @@ func runServiceReport() error {
 		"--rm",
 		"--name", "servicereport",
 		"-v", "/etc/modprobe.d:/etc/modprobe.d",
-		"-v", "/etc/modules-load.d/vfio-pci.conf:/etc/modules-load.d/vfio-pci.conf",
+		"-v", "/etc/modules-load.d/:/etc/modules-load.d/",
 		"-v", "/etc/udev/rules.d/:/etc/udev/rules.d/",
 		"-v", "/dev/vfio/:/dev/vfio",
 		"-v", "/etc/security/limits.d/:/etc/security/limits.d/",

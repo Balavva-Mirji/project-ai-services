@@ -202,9 +202,7 @@ func ExpectErrorResponse(body []byte, statusCode, successStatus int) (*ErrorResp
 		return ParseErrorResponse(body, statusCode)
 	}
 
-	return strings.Contains(err.Error(), "429") &&
-		(strings.Contains(err.Error(), "RATE_LIMIT_EXCEEDED") ||
-			strings.Contains(err.Error(), "Too many"))
+	return nil, fmt.Errorf("unexpected success with status code %d: %s", statusCode, string(body))
 }
 
 // GetTestPDFPath returns the absolute path to the shared test PDF fixture (test_doc.pdf)

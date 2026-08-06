@@ -2105,8 +2105,24 @@ var _ = ginkgo.Describe("AI Services End-to-End Tests", ginkgo.Ordered, func() {
 			ctx, cancel := withTimeout(5 * time.Minute)
 			defer cancel()
 
-			resp, err := summarization.SummarizeText(ctx, syncSummarizeBaseURL,
-				"Artificial intelligence has significantly evolved over the years and impacts multiple industries globally.", "standard")
+			text := "Artificial intelligence has significantly evolved over the past decade, transforming industries " +
+				"ranging from healthcare and finance to transportation and education. " +
+				"Machine learning algorithms now power recommendation engines, fraud detection systems, " +
+				"and predictive analytics platforms used by millions of people every day.\n\n" +
+				"In healthcare, AI-assisted diagnostics can detect diseases such as cancer and diabetic " +
+				"retinopathy from medical images with accuracy rivalling that of experienced clinicians. " +
+				"Drug discovery pipelines are being accelerated by models that predict molecular interactions, " +
+				"reducing the time and cost of bringing new treatments to market.\n\n" +
+				"The financial sector relies on AI for real-time fraud detection, algorithmic trading, " +
+				"credit scoring, and personalised investment advice. Natural language processing enables " +
+				"chatbots and virtual assistants to handle customer queries at scale, reducing operational " +
+				"costs while improving response times.\n\n" +
+				"Despite these advances, significant challenges remain. Ensuring fairness, transparency, " +
+				"and accountability in automated decision-making is an active area of research and regulation. " +
+				"The environmental cost of training large models and the risk of job displacement in " +
+				"certain sectors are also subjects of ongoing public debate."
+
+			resp, err := summarization.SummarizeText(ctx, syncSummarizeBaseURL, text, "standard")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(resp.Summary()).NotTo(gomega.BeEmpty())
 			logger.Infof("[TEST] ✓ larger text standard (len=%d)", len(resp.Summary()))
@@ -2229,8 +2245,10 @@ var _ = ginkgo.Describe("AI Services End-to-End Tests", ginkgo.Ordered, func() {
 			resp, err := summarization.SummarizeFile(ctx, syncSummarizeBaseURL,
 				testFilePath("ingestion/docs/sample_txt.txt"), "standard")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(resp.Summary()).NotTo(gomega.BeEmpty())
-			logger.Infof("[TEST] ✓ TXT upload standard (len=%d)", len(resp.Summary()))
+			kw, found := common.SummaryContainsAnyKeyword(resp.Summary(), summarization.TXTSummaryKeywords)
+			gomega.Expect(found).To(gomega.BeTrue(),
+				fmt.Sprintf("expected TXT summary to mention one of %v, got: %q", summarization.TXTSummaryKeywords, resp.Summary()))
+			logger.Infof("[TEST] ✓ TXT upload standard (len=%d, keyword=%q)", len(resp.Summary()), kw)
 		})
 
 		ginkgo.It("summarizes a TXT file via multipart form with 'brief' level field", func() {
@@ -2240,8 +2258,10 @@ var _ = ginkgo.Describe("AI Services End-to-End Tests", ginkgo.Ordered, func() {
 			resp, err := summarization.SummarizeFile(ctx, syncSummarizeBaseURL,
 				testFilePath("ingestion/docs/sample_txt.txt"), "brief")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(resp.Summary()).NotTo(gomega.BeEmpty())
-			logger.Infof("[TEST] ✓ TXT level=brief (len=%d)", len(resp.Summary()))
+			kw, found := common.SummaryContainsAnyKeyword(resp.Summary(), summarization.TXTSummaryKeywords)
+			gomega.Expect(found).To(gomega.BeTrue(),
+				fmt.Sprintf("expected TXT summary to mention one of %v, got: %q", summarization.TXTSummaryKeywords, resp.Summary()))
+			logger.Infof("[TEST] ✓ TXT level=brief (len=%d, keyword=%q)", len(resp.Summary()), kw)
 		})
 
 		ginkgo.It("summarizes a PDF file via multipart form (no level — default)", func() {
@@ -2254,8 +2274,10 @@ var _ = ginkgo.Describe("AI Services End-to-End Tests", ginkgo.Ordered, func() {
 				ginkgo.Skip(fmt.Sprintf("skipping — PDF exceeds model context limit: %v", err))
 			}
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(resp.Summary()).NotTo(gomega.BeEmpty())
-			logger.Infof("[TEST] ✓ PDF no level (len=%d)", len(resp.Summary()))
+			kw, found := common.SummaryContainsAnyKeyword(resp.Summary(), summarization.PDFSummaryKeywords)
+			gomega.Expect(found).To(gomega.BeTrue(),
+				fmt.Sprintf("expected PDF summary to mention one of %v, got: %q", summarization.PDFSummaryKeywords, resp.Summary()))
+			logger.Infof("[TEST] ✓ PDF no level (len=%d, keyword=%q)", len(resp.Summary()), kw)
 		})
 
 		ginkgo.It("summarizes a PDF file via multipart form with 'detailed' level field", func() {
@@ -2268,8 +2290,10 @@ var _ = ginkgo.Describe("AI Services End-to-End Tests", ginkgo.Ordered, func() {
 				ginkgo.Skip(fmt.Sprintf("skipping — PDF exceeds model context limit: %v", err))
 			}
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(resp.Summary()).NotTo(gomega.BeEmpty())
-			logger.Infof("[TEST] ✓ PDF level=detailed (len=%d)", len(resp.Summary()))
+			kw, found := common.SummaryContainsAnyKeyword(resp.Summary(), summarization.PDFSummaryKeywords)
+			gomega.Expect(found).To(gomega.BeTrue(),
+				fmt.Sprintf("expected PDF summary to mention one of %v, got: %q", summarization.PDFSummaryKeywords, resp.Summary()))
+			logger.Infof("[TEST] ✓ PDF level=detailed (len=%d, keyword=%q)", len(resp.Summary()), kw)
 		})
 
 		ginkgo.It("summarizes a PDF file via multipart form with legacy 'length' field", func() {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -24,6 +23,14 @@ const (
 	postCallTimeout = 120 * time.Second // summarization calls can be slow
 	pollInterval    = 5 * time.Second   // interval between job status polls
 )
+
+// TXTSummaryKeywords are representative terms from sample_txt.txt (Lorem Ipsum history).
+// A valid summary is expected to mention at least one of these topics.
+var TXTSummaryKeywords = []string{"lorem", "ipsum", "typesetting", "latin", "cicero", "dummy", "text", "printing"}
+
+// PDFSummaryKeywords are representative terms from sync_test.pdf (AI overview).
+// A valid summary is expected to mention at least one of these topics.
+var PDFSummaryKeywords = []string{"artificial intelligence", "machine learning", "deep learning", "neural", "nlp", "computer vision", "ai", "medical"}
 
 // SetAppRuntime is a no-op placeholder required by the test suite interface.
 func SetAppRuntime(string) {}
@@ -50,12 +57,12 @@ func GetTestTXTPath() string {
 
 // ── Async job types ───────────────────────────────────────────────────────────
 
-// JobCreatedResponse is returned by POST /v1/summarize/jobs.
+// JobCreatedResponse represents the response when a summarization job is created.
 type JobCreatedResponse struct {
 	JobID string `json:"job_id"`
 }
 
-// JobStatus is the lifecycle state of an async summarization job.
+// JobStatus is the lifecycle state of a summarization job.
 type JobStatus string
 
 const (
@@ -79,7 +86,7 @@ type JobMetadata struct {
 	Phase           string `json:"phase"`
 }
 
-// JobDetailResponse is returned by GET /v1/summarize/jobs/{id}.
+// JobDetailResponse represents the response when getting job details.
 type JobDetailResponse struct {
 	JobID       string       `json:"job_id"`
 	JobName     *string      `json:"job_name,omitempty"`
@@ -91,7 +98,7 @@ type JobDetailResponse struct {
 	Metadata    *JobMetadata `json:"metadata,omitempty"`
 }
 
-// JobResultResponse is returned by GET /v1/summarize/jobs/{id}/result.
+// JobResultResponse represents the response when getting a job result.
 type JobResultResponse struct {
 	Data  map[string]interface{} `json:"data"`
 	Meta  map[string]interface{} `json:"meta"`
@@ -105,13 +112,13 @@ type PaginationInfo struct {
 	Offset int `json:"offset"`
 }
 
-// JobsListResponse is returned by GET /v1/summarize/jobs.
+// JobsListResponse represents the response when listing summarization jobs.
 type JobsListResponse struct {
 	Pagination PaginationInfo      `json:"pagination"`
 	Data       []JobDetailResponse `json:"data"`
 }
 
-// HealthCheckResponse is returned by GET /health.
+// HealthCheckResponse represents the health check response.
 type HealthCheckResponse struct {
 	Status  string `json:"status"`
 	Version string `json:"version,omitempty"`
@@ -152,22 +159,27 @@ func (r *SyncSummarizeResponse) Summary() string {
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
+// healthURL constructs the health check endpoint URL.
 func healthURL(baseURL string) string {
-	return baseURL + "/health"
+	return fmt.Sprintf("%s/health", baseURL)
 }
 
+// syncSummarizeURL returns the synchronous summarize endpoint URL.
 func syncSummarizeURL(baseURL string) string {
-	return baseURL + "/v1/summarize"
+	return fmt.Sprintf("%s/v1/summarize", baseURL)
 }
 
+// jobsURL constructs the jobs list/delete endpoint URL.
 func jobsURL(baseURL string) string {
-	return baseURL + "/v1/summarize/jobs"
+	return fmt.Sprintf("%s/v1/summarize/jobs", baseURL)
 }
 
+// jobURL constructs a job detail endpoint URL.
 func jobURL(baseURL, jobID string) string {
 	return fmt.Sprintf("%s/v1/summarize/jobs/%s", baseURL, jobID)
 }
 
+// jobResultURL constructs a job result endpoint URL.
 func jobResultURL(baseURL, jobID string) string {
 	return fmt.Sprintf("%s/v1/summarize/jobs/%s/result", baseURL, jobID)
 }
@@ -176,10 +188,10 @@ func jobResultURL(baseURL, jobID string) string {
 func buildJobCreateURL(baseURL, level, jobName string, stream bool) string {
 	url := fmt.Sprintf("%s?stream=%t", jobsURL(baseURL), stream)
 	if level != "" {
-		url += "&level=" + level
+		url += fmt.Sprintf("&level=%s", level)
 	}
 	if jobName != "" {
-		url += "&job_name=" + jobName
+		url += fmt.Sprintf("&job_name=%s", jobName)
 	}
 
 	return url
@@ -187,14 +199,17 @@ func buildJobCreateURL(baseURL, level, jobName string, stream bool) string {
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
 
+// doGET sends a GET request and returns the response body and status code.
 func doGET(ctx context.Context, url string) ([]byte, int, error) {
 	return common.DoGET(ctx, url, httpConfigForTimeout(getCallTimeout))
 }
 
+// doPOST sends a POST request with the given body and content type.
 func doPOST(ctx context.Context, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
 	return common.DoPOST(ctx, url, body, contentType, httpConfigForTimeout(postCallTimeout))
 }
 
+// doDELETE sends a DELETE request.
 func doDELETE(ctx context.Context, url string) ([]byte, int, error) {
 	return common.DoDELETE(ctx, url, httpConfigForTimeout(getCallTimeout))
 }
@@ -435,10 +450,10 @@ func WaitForJobCompletion(ctx context.Context, baseURL, jobID string, timeout ti
 func ListJobs(ctx context.Context, baseURL string, limit, offset int, status, jobName string) (*JobsListResponse, error) {
 	url := fmt.Sprintf("%s?limit=%d&offset=%d", jobsURL(baseURL), limit, offset)
 	if status != "" {
-		url += "&status=" + status
+		url += fmt.Sprintf("&status=%s", status)
 	}
 	if jobName != "" {
-		url += "&job_name=" + jobName
+		url += fmt.Sprintf("&job_name=%s", jobName)
 	}
 
 	respBody, statusCode, err := doGET(ctx, url)
@@ -611,7 +626,7 @@ func RunConcurrentSummarizeFile(ctx context.Context, baseURL, filePath, level st
 			}
 
 			t0 := time.Now()
-			body, writer, err := buildMultipartBodyWithFields(filePath, fields)
+			body, writer, err := common.BuildMultipartBodyWithFields("file", filePath, fields)
 
 			if err != nil {
 				results[idx] = ConcurrentResult{Index: idx + 1, Err: err}
@@ -685,40 +700,6 @@ func SummarizeTextWithLength(ctx context.Context, baseURL, text string, length i
 	return resp, nil
 }
 
-// buildMultipartBodyWithFields builds a multipart body containing a file and
-// optional extra form fields (e.g. "level", "length").
-func buildMultipartBodyWithFields(filePath string, fields map[string]string) (*bytes.Buffer, *multipart.Writer, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("open file: %w", err)
-	}
-
-	defer func() { _ = file.Close() }()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
-	if err != nil {
-		return nil, nil, fmt.Errorf("create form file: %w", err)
-	}
-
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, nil, fmt.Errorf("copy file content: %w", err)
-	}
-
-	for k, v := range fields {
-		if err := writer.WriteField(k, v); err != nil {
-			return nil, nil, fmt.Errorf("write field %s: %w", k, err)
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, nil, fmt.Errorf("close multipart writer: %w", err)
-	}
-
-	return body, writer, nil
-}
 
 // SummarizeFile calls POST /v1/summarize with a multipart file upload.
 // level is an optional form field ("brief" | "standard" | "detailed").
@@ -728,7 +709,7 @@ func SummarizeFile(ctx context.Context, baseURL, filePath, level string) (*SyncS
 		fields["level"] = level
 	}
 
-	body, writer, err := buildMultipartBodyWithFields(filePath, fields)
+	body, writer, err := common.BuildMultipartBodyWithFields("file", filePath, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -754,7 +735,7 @@ func SummarizeFile(ctx context.Context, baseURL, filePath, level string) (*SyncS
 func SummarizeFileWithLength(ctx context.Context, baseURL, filePath string, length int) (*SyncSummarizeResponse, error) {
 	fields := map[string]string{"length": fmt.Sprintf("%d", length)}
 
-	body, writer, err := buildMultipartBodyWithFields(filePath, fields)
+	body, writer, err := common.BuildMultipartBodyWithFields("file", filePath, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -802,7 +783,7 @@ func SummarizeFileExpectingError(ctx context.Context, baseURL, filePath, level s
 		fields["level"] = level
 	}
 
-	body, writer, err := buildMultipartBodyWithFields(filePath, fields)
+	body, writer, err := common.BuildMultipartBodyWithFields("file", filePath, fields)
 	if err != nil {
 		return nil, 0, err
 	}

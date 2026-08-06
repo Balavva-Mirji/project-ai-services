@@ -49,7 +49,7 @@ minimum number of Spyre cards installed, amongst other pre-flight checks.
 
    3. Run using the Ginkgo CLI
 
-      > **Important:** always supply `-tags "exclude_graphdriver_btrfs containers_image_openpgp remote"` when invoking `ginkgo` directly. Without these tags the build will fail with `gpgme: build constraints exclude all Go files` because `containers/podman` pulls in a C-library binding that is excluded by these tags.
+      > **Important:** always supply `-tags "$TAGS"` when invoking `ginkgo` directly. Without these tags the build will fail with `gpgme: build constraints exclude all Go files` because `containers/podman` pulls in a C-library binding that is excluded by these tags.
 
       ```bash
       ### install ginkgo
@@ -58,12 +58,15 @@ minimum number of Spyre cards installed, amongst other pre-flight checks.
       ### add the installation path to PATH
       export PATH=$PATH:$(go env GOPATH)/bin
 
+      ### set build tags once — reuse in all ginkgo commands below
+      export TAGS="exclude_graphdriver_btrfs containers_image_openpgp remote"
+
       ### run the whole suite
-      ginkgo -r -tags "exclude_graphdriver_btrfs containers_image_openpgp remote" \
+      ginkgo -r -tags "$TAGS" \
         --timeout=3h ./tests/e2e -- --runtime=<openshift/podman - default is podman>
 
       ### to generate a junit report with ginkgo
-      ginkgo -r -tags "exclude_graphdriver_btrfs containers_image_openpgp remote" \
+      ginkgo -r -tags "$TAGS" \
         --timeout=3h --runtime=<openshift/podman - default is podman> \
         --junit-report=e2e-report.xml --output-dir=tests/e2e/reports \
         ./tests/e2e/...
@@ -128,16 +131,17 @@ Use Ginkgo label filters to run only the part of the suite you need.
 make test TEST_ARGS="--label-filter=summarization-tests --timeout=3h" \
   APP_NAME=<appname> APP_RUNTIME=podman
 
-# Using go run (same as make, tags required)
+# Using go run (tags required — or set TAGS var as shown above)
+export TAGS="exclude_graphdriver_btrfs containers_image_openpgp remote"
 go run github.com/onsi/ginkgo/v2/ginkgo \
-  -tags "exclude_graphdriver_btrfs containers_image_openpgp remote" \
+  -tags "$TAGS" \
   --label-filter="summarization-tests" \
   --timeout=3h --v \
   . \
   -- -app-name=<appname> -template=summarize -runtime=podman
 
 # Using ginkgo CLI directly
-ginkgo -r -tags "exclude_graphdriver_btrfs containers_image_openpgp remote" \
+ginkgo -r -tags "$TAGS" \
   --label-filter="summarization-tests" --timeout=3h \
   ./tests/e2e -- --app-name=<appname> --template=summarize --runtime=podman
 ```

@@ -147,6 +147,13 @@ type ErrorResponse struct {
 // BuildMultipartBody builds a multipart/form-data body with a single file field.
 // Shared by packages that need to POST files.
 func BuildMultipartBody(fieldName, filePath string) (*bytes.Buffer, *multipart.Writer, error) {
+	return BuildMultipartBodyWithFields(fieldName, filePath, nil)
+}
+
+// BuildMultipartBodyWithFields builds a multipart/form-data body with a file field
+// and optional extra string fields (e.g. "level", "length").
+// Pass nil or an empty map when no extra fields are needed.
+func BuildMultipartBodyWithFields(fieldName, filePath string, fields map[string]string) (*bytes.Buffer, *multipart.Writer, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open file: %w", err)
@@ -163,6 +170,12 @@ func BuildMultipartBody(fieldName, filePath string) (*bytes.Buffer, *multipart.W
 
 	if _, err := io.Copy(part, file); err != nil {
 		return nil, nil, fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	for k, v := range fields {
+		if err := writer.WriteField(k, v); err != nil {
+			return nil, nil, fmt.Errorf("failed to write field %s: %w", k, err)
+		}
 	}
 
 	if err := writer.Close(); err != nil {
@@ -229,4 +242,18 @@ func IsRateLimitError(err error) bool {
 	return strings.Contains(err.Error(), "429") &&
 		(strings.Contains(err.Error(), "RATE_LIMIT_EXCEEDED") ||
 			strings.Contains(err.Error(), "Too many"))
+}
+
+// SummaryContainsAnyKeyword reports whether summary contains at least one of
+// the given keywords (case-insensitive). The first matched keyword is returned
+// together with true so callers can include it in assertion failure messages.
+func SummaryContainsAnyKeyword(summary string, keywords []string) (string, bool) {
+	lower := strings.ToLower(summary)
+	for _, kw := range keywords {
+		if strings.Contains(lower, strings.ToLower(kw)) {
+			return kw, true
+		}
+	}
+
+	return "", false
 }
